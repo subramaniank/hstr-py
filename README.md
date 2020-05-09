@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/subramaniank/hstr-py.svg?branch=master)](https://travis-ci.org/subramaniank/hstr-py)
+
 # hstr-py
 Hstr wasn't installing for me on AL2. Attempting to hack together a version for myself.
 
