@@ -1,4 +1,4 @@
-import sys,os,re
+import sys,os,re,termios,fcntl
 import curses
 import string
 import logging
@@ -48,7 +48,7 @@ def get_output(curr_search_string, stdscr):
     current_match = 0
     for line in f_shell_history:
         formatted_cmd = get_formatted_cmd(line)
-        if re.search(curr_search_string, formatted_cmd):
+        if formatted_cmd and re.search(curr_search_string, formatted_cmd):
             current_match += 1
             output_lines.add(formatted_cmd)
             if current_match >= max_matches:
@@ -89,7 +89,16 @@ def draw_menu(stdscr):
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
 
     # Loop where k is the last character pressed
-    while (k != 7):
+    while (True):
+        global current_selected_cmd
+
+        # Reset and break on Ctrl-g
+        if (k == 7):
+            current_selected_cmd = None
+            break
+
+        if (k == 10):
+            break
 
         curr_search_string = format_curr_search_string(k, curr_search_string)
         # Initialization
@@ -103,36 +112,12 @@ def draw_menu(stdscr):
         curr_search_stringstr = "Current search string: {}".format(curr_search_string)
         cursor_x, cursor_y = get_cursor_pos(curr_search_stringstr)
 
-        # Centering calculations
-        #start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
-        #start_x_subtitle = int((width // 2) - (len(subtitle) // 2) - len(subtitle) % 2)
-        #start_x_keystr = int((width // 2) - (len(keystr) // 2) - len(keystr) % 2)
-        #start_y = int((height // 2) - 2)
-
         # Rendering some text
         stdscr.addstr(0, 0, curr_search_stringstr, curses.color_pair(1))
-
-
-        # Turning on attributes for title
-        #stdscr.attron(curses.color_pair(2))
-        #stdscr.attron(curses.A_BOLD)
-
-        # Rendering title
-        #stdscr.addstr(start_y, start_x_title, title)
-
-        # Turning off attributes for title
-        #stdscr.attroff(curses.color_pair(2))
-        #stdscr.attroff(curses.A_BOLD)
-
-        # Print rest of text
-        #stdscr.addstr(start_y + 1, start_x_subtitle, subtitle)
-        #stdscr.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
-        #stdscr.addstr(start_y + 5, start_x_keystr, keystr)
 
         output_lines = get_output(curr_search_string, stdscr)
 
         # Refresh the screen
-        global current_selected_cmd
         curr_selection, current_selected_cmd = get_current_selected_cmd(k, curr_selection, output_lines)
         logging.debug(current_selected_cmd)
         stdscr.move(cursor_y, cursor_x)
@@ -151,7 +136,9 @@ def draw_menu(stdscr):
 
 def main():
     curses.wrapper(draw_menu)
-    print(current_selected_cmd)
+    if (current_selected_cmd):
+        for curr_char in current_selected_cmd:
+            fcntl.ioctl(0, termios.TIOCSTI, curr_char)
 
 if __name__ == "__main__":
     main()
